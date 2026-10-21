@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Apollyon — 3D p5.js WEBGL & Random Walk Experiment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #14161b;
+      font-family: "Consolas", "Courier New", monospace, sans-serif;
+      color: #e2e4e8;
+      user-select: none;
+    }
+    #ui {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .panel {
+      position: absolute;
+      background: rgba(18, 20, 26, 0.88);
+      border: 1px solid rgba(195, 150, 45, 0.45);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7);
+      padding: 10px 14px;
+      font-size: 12px;
+      border-radius: 6px;
+      pointer-events: auto;
+    }
+    h3 {
+      margin: 0 0 6px 0;
+      font-size: 13px;
+      color: #dfb14a;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 4px 0;
+    }
+    button {
+      background: rgba(195, 150, 45, 0.16);
+      color: #f0f0f0;
+      border: 1px solid rgba(195, 150, 45, 0.5);
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: inherit;
+      border-radius: 4px;
+      transition: all 0.15s ease-in-out;
+    }
+    button:hover {
+      background: rgba(195, 150, 45, 0.38);
+      border-color: #dfb14a;
+      transform: translateY(-1px);
+    }
+    button.active {
+      background: rgba(195, 150, 45, 0.75);
+      color: #ffffff;
+      font-weight: bold;
+      border-color: #ffdc73;
+    }
+    button.mode-btn {
+      font-size: 12px;
+      font-weight: bold;
+      padding: 8px 16px;
+    }
+    #top-nav {
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(16, 18, 24, 0.92);
+      border: 1px solid rgba(195, 150, 45, 0.4);
+      padding: 8px 16px;
+      border-radius: 6px;
+      pointer-events: auto;
+    }
+    #top-left {
+      top: 72px;
+      left: 14px;
+      width: 310px;
+    }
+    #top-right {
+      top: 72px;
+      right: 14px;
+      width: 250px;
+    }
+    #bottom {
+      bottom: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stat {
+      color: #8be9fd;
+      font-weight: bold;
+    }
+    .accent {
+      color: #dfb14a;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <!-- Top Navigation Bar for Mode Switching -->
+    <div id="top-nav">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span style="color:#dfb14a; font-weight:bold; letter-spacing:1px; font-size:13px;">APOLLYON WEBGL</span>
+        <button id="btnModeCreature" class="mode-btn active">3D APOLLYON CREATURE</button>
+        <button id="btnModeExperiment" class="mode-btn">RANDOM WALK EXPERIMENT (3-PANEL)</button>
+      </div>
+      <div>
+        <span style="font-size:11px; color:#aaa;">FPS: <span id="fps" class="stat">60</span></span>
+      </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="panel" id="top-left">
+      <h3 id="panelTitle">3D APOLLYON CREATURE</h3>
+      <div id="rowSub">PHYSIOLOGY: <span class="accent">WARHORSE INSECT CHITIN</span></div>
+      <div>ACTIVE BEHAVIOR: <span id="curBehavior" class="stat">WANDER</span></div>
+      <div id="rowAlt">WORLD ALTITUDE: <span id="curAlt" class="stat">4.4 (GROUND)</span></div>
+      <div>VIEW / CAMERA: <span id="curView" class="stat">3/4 PERSPECTIVE</span></div>
+    </div>
+
+    <!-- Controls Guide -->
+    <div class="panel" id="top-right">
+      <h3>SHORTCUTS</h3>
+      <div>[M]: Switch App Mode</div>
+      <div>[1]: Wander | [2]: Strike | [3]: Flight</div>
+      <div>[Space]: Pause/Resume | [R]: Reset</div>
+      <div>[W]: Wireframe | [F]: Camera Follow</div>
+    </div>
+
+    <!-- Bottom Controls Panel -->
+    <div class="panel" id="bottom">
+      <!-- Creature Mode Controls -->
+      <div id="creatureControls" class="row">
+        <span style="display:flex; align-items:center; color:#dfb14a; font-size:11px; font-weight:bold; margin-right:4px;">BEHAVIORS:</span>
+        <button id="btnWander" class="active">WANDER (NOISE)</button>
+        <button id="btnStrike">STRIKE (LUNGE)</button>
+        <button id="btnFlight">FLIGHT (3D SOAR)</button>
+        <span style="display:inline-block; width:1px; background:#444; margin:0 4px;"></span>
+        <button id="btnCamFollow">CAM: FOLLOW</button>
+        <button id="btnWire">WIREFRAME</button>
+        <button id="btnPause">PAUSE</button>
+      </div>
+
+      <!-- Experiment Mode Controls (Hidden in Creature mode) -->
+      <div id="expControls" class="row" style="display:none;">
+        <button id="btnExpPause">PAUSE / RESUME</button>
+        <button id="btnExpReset">RESET EXPERIMENT</button>
+        <button id="btnExpTrail" class="active">TRAIL: ON</button>
+      </div>
+
+      <!-- Camera Views -->
+      <div id="camControls" class="row">
+        <button id="btnThreeQ" class="active">3/4 VIEW</button>
+        <button id="btnFront">FRONT</button>
+        <button id="btnSide">SIDE</button>
+        <button id="btnTop">TOP</button>
+        <button id="btnScreenshot">CAPTURE SCREENSHOT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- p5.js Core -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.min.js"></script>
+
+  <!-- Algorithmic Geometry Engine -->
+  <script src="marching_cube_LUT.js"></script>
+  <script src="marching_cubes.js"></script>
+  <script src="mesh_builder.js"></script>
+
+  <!-- Three-Panel Random Walk Experiment -->
+  <script src="random_walk_experiment.js"></script>
+
+  <!-- Apollyon Creature System & Scene -->
+  <script src="apollyon_creature.js"></script>
+  <script src="sketch.js"></script>
+</body>
+</html>
